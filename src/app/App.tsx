@@ -27,9 +27,11 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const upcomingEvents = [
     {
@@ -149,7 +151,10 @@ export default function App() {
 
             {/* Auth Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <button className="px-4 py-2 text-slate-700 hover:text-blue-600 transition-colors font-medium">
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 text-slate-700 hover:text-blue-600 transition-colors font-medium"
+              >
                 Login
               </button>
               <button className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all font-medium">
@@ -191,7 +196,10 @@ export default function App() {
                 Contact
               </a>
               <div className="pt-4 space-y-3">
-                <button className="w-full px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 font-medium">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 font-medium"
+                >
                   Login
                 </button>
                 <button className="w-full px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium">
