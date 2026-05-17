@@ -12,7 +12,21 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: env.corsOrigin,
+      origin(origin, callback) {
+        // Allow non-browser tools (no Origin header) and configured dev origins
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        const allowed = env.corsOrigin;
+        const isLocalDev =
+          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+        if (allowed.includes(origin) || (env.nodeEnv !== "production" && isLocalDev)) {
+          callback(null, true);
+          return;
+        }
+        callback(null, false);
+      },
       credentials: true,
     })
   );

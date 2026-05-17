@@ -22,8 +22,9 @@ async function bootstrap() {
   await ensureDefaultAdmin();
 
   const app = createApp();
-  app.listen(env.port, () => {
+  app.listen(env.port, "0.0.0.0", () => {
     console.log(`API listening on http://localhost:${env.port}`);
+    console.log(`Health check: http://localhost:${env.port}/api/health`);
   });
 }
 

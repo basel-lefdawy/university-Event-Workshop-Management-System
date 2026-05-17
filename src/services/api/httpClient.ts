@@ -1,6 +1,7 @@
 import { parseApiError } from "@/services/api/errors";
 
-const DEFAULT_BASE_URL = "http://localhost:3001/api";
+/** Use /api in dev (Vite proxy) or full URL from VITE_API_BASE_URL */
+const DEFAULT_BASE_URL = "/api";
 
 export interface HttpClientConfig {
   baseUrl?: string;
@@ -28,7 +29,14 @@ export function createHttpClient(config: HttpClientConfig = {}) {
       headers.set("Content-Type", "application/json");
     }
 
-    const res = await fetch(buildUrl(baseUrl, path), { ...init, headers });
+    let res: Response;
+    try {
+      res = await fetch(buildUrl(baseUrl, path), { ...init, headers });
+    } catch {
+      throw new Error(
+        "Cannot reach the API server. Start the backend with: cd backend && npm run dev"
+      );
+    }
 
     if (!res.ok) {
       throw new Error(await parseApiError(res));

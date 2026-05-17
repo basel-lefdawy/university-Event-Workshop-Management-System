@@ -25,5 +25,8 @@ export const env = {
   adminEmail: process.env.ADMIN_EMAIL ?? "admin@university.com",
   adminPassword: process.env.ADMIN_PASSWORD ?? "Admin123!",
   adminName: process.env.ADMIN_NAME ?? "System Admin",
-  corsOrigin: (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(",").map((o) => o.trim()),
+  corsOrigin: (process.env.CORS_ORIGIN ?? "http://localhost:5173,http://127.0.0.1:5173")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
 };
