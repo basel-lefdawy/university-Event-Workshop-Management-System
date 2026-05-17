@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node scripts/ensure-env.mjs && tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed",
-    "db:setup": "prisma migrate deploy && prisma db seed"
+    "env:setup": "node scripts/ensure-env.mjs",
+    "postinstall": "node scripts/run-prisma.mjs generate",
+    "prisma:generate": "node scripts/run-prisma.mjs generate",
+    "prisma:migrate": "node scripts/run-prisma.mjs migrate dev",
+    "prisma:deploy": "node scripts/run-prisma.mjs migrate deploy",
+    "prisma:seed": "node scripts/run-prisma.mjs db seed",
+    "db:setup": "node scripts/run-prisma.mjs migrate deploy && node scripts/run-prisma.mjs db seed"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",

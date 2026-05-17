@@ -1,4 +1,17 @@
+import { config } from "dotenv";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
+
+const backendRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+config({ path: resolve(backendRoot, ".env") });
+
+if (!process.env.DATABASE_URL) {
+  const { DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME } = process.env;
+  if (DB_USER && DB_PASSWORD && DB_HOST && DB_PORT && DB_NAME) {
+    process.env.DATABASE_URL = `mysql://${DB_USER}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
+  }
+}
 
 const prisma = new PrismaClient();
 

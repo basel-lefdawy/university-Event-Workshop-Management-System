@@ -39,8 +39,12 @@ Copy the example files and adjust if needed:
 
 ```bash
 cp .env.example .env
-cp backend/.env.example backend/.env
+cd backend
+npm run env:setup   # creates backend/.env from .env.example if missing
+cd ..
 ```
+
+Or manually: `cp backend/.env.example backend/.env`
 
 | Variable | Description |
 |----------|-------------|
@@ -116,7 +120,8 @@ API: [http://localhost:3001/api/health](http://localhost:3001/api/health)
 docker compose up mysql -d
 
 cd backend
-npm run prisma:deploy   # apply migrations
+npm run env:setup       # ensure backend/.env exists (first time only)
+npm run prisma:deploy   # generate client + apply migrations
 npm run prisma:seed     # seed events
 npm run dev             # start API with hot reload
 ```
@@ -217,6 +222,8 @@ Base URL: `http://localhost:3001/api`
 
 | Issue | Fix |
 |-------|-----|
+| `Environment variable not found: DATABASE_URL` | Run `cd backend && npm run env:setup` to create `backend/.env` from the example file. |
+| `@prisma/client did not initialize yet` | Run `cd backend && npm run prisma:generate` (included automatically in `prisma:deploy` and `prisma:seed`). |
 | `Can't connect to MySQL server` | Wait for health check: `docker compose ps`. Ensure port 3306 is free. |
 | `Access denied for user 'root'` | Match `DB_PASSWORD` in `.env`, `backend/.env`, and `docker-compose.yml`. |
 | Migrations fail on first start | Run `docker compose logs mysql` and retry `npm run prisma:deploy` in `backend/`. |
