@@ -9,10 +9,17 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
 }
 
-/** Swap `user` checks for richer session validation when JWT claims land. */
 export function ProtectedRoute({ children, requireAdmin }: ProtectedRouteProps) {
-  const { user, token } = useAuth();
+  const { user, token, isBootstrapping } = useAuth();
   const location = useLocation();
+
+  if (isBootstrapping) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center pt-32">
+        <p className="text-slate-600 font-medium">Loading your session…</p>
+      </div>
+    );
+  }
 
   if (!user || !token) {
     return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />;

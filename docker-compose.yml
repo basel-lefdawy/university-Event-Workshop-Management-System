@@ -1,0 +1,48 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: unievents-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-yourpassword}
+      MYSQL_DATABASE: ${DB_NAME:-event_management}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-yourpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: unievents-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-yourpassword}
+      DB_NAME: ${DB_NAME:-event_management}
+      DATABASE_URL: mysql://root:${DB_PASSWORD:-yourpassword}@mysql:3306/${DB_NAME:-event_management}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@university.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
+      ADMIN_NAME: ${ADMIN_NAME:-System Admin}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    ports:
+      - "${API_PORT:-3001}:3001"
+
+volumes:
+  mysql_data:

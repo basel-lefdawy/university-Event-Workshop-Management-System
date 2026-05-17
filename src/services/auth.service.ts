@@ -1,35 +1,35 @@
-import type { AuthUser, LoginCredentials, RegisterPayload, UserRole } from "@/types/user";
+import { api } from "@/services/apiInstance";
+import type { AuthUser, LoginCredentials, RegisterPayload } from "@/types/user";
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface AuthResponse {
+  success: boolean;
+  user: AuthUser;
+  token: string;
 }
 
-function roleFromEmail(email: string): UserRole {
-  const e = email.trim().toLowerCase();
-  if (e.startsWith("admin@")) {
-    return "admin";
-  }
-  return "student";
+interface MeResponse {
+  success: boolean;
+  user: AuthUser;
 }
 
-/** Replace internals with api.post('/auth/login', ...) when backend is ready. */
-export async function loginWithCredentials(creds: LoginCredentials): Promise<AuthUser> {
-  await delay(400);
-  const nameFromEmail = creds.email.split("@")[0]?.replace(/\./g, " ") ?? "Student";
-  return {
-    id: crypto.randomUUID(),
+export async function loginWithCredentials(
+  creds: LoginCredentials
+): Promise<{ user: AuthUser; token: string }> {
+  const res = await api.post<AuthResponse>("/auth/login", {
     email: creds.email,
-    name: nameFromEmail.slice(0, 1).toUpperCase() + nameFromEmail.slice(1),
-    role: roleFromEmail(creds.email),
-  };
+    password: creds.password,
+  });
+  return { user: res.user, token: res.token };
 }
 
-export async function registerAccount(payload: RegisterPayload): Promise<AuthUser> {
-  await delay(500);
-  return {
-    id: crypto.randomUUID(),
-    email: payload.email,
-    name: payload.name,
-    role: roleFromEmail(payload.email),
-  };
+export async function registerAccount(
+  payload: RegisterPayload
+): Promise<{ user: AuthUser; token: string }> {
+  const res = await api.post<AuthResponse>("/auth/register", payload);
+  return { user: res.user, token: res.token };
+}
+
+export async function fetchCurrentUser(): Promise<AuthUser> {
+  const res = await api.get<MeResponse>("/auth/me");
+  return res.user;
 }

@@ -21,8 +21,7 @@ export default function UserDashboardPage() {
             Hi{user?.name ? `, ${user.name}` : ""}! Here is your UniEvents home base.
           </h1>
           <p className="text-slate-600 leading-relaxed mb-8">
-            Registrations, saved sessions, and organizer tools will appear here when the API is wired. Use the links
-            below to manage your campus activity in the meantime.
+            Manage your campus activity, registrations, and event drafts from here.
           </p>
           <ul className="grid sm:grid-cols-2 gap-3 mb-8 text-slate-700">
             <li>

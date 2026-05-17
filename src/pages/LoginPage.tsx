@@ -31,13 +31,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLocalError(null);
     try {
-      await login({ email, password, rememberMe });
-      const redirectTo =
-        (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname ??
-        ROUTES.DASHBOARD;
-      navigate(redirectTo, { replace: true });
-    } catch {
-      setLocalError("Unable to sign in. Check your credentials and try again.");
+      const loggedInUser = await login({ email, password, rememberMe });
+      const fromPath = (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname;
+      const defaultPath =
+        loggedInUser.role === "admin" ? ROUTES.ADMIN_DASHBOARD : ROUTES.DASHBOARD;
+      navigate(fromPath ?? defaultPath, { replace: true });
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : "Unable to sign in. Check your credentials and try again.");
     }
   };
 
@@ -74,9 +74,8 @@ export default function LoginPage() {
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h2>
               <p className="text-slate-600">
-                Sign in for your dashboard, registrations, and event drafts. Demo admins: sign in with an email that
-                starts with{" "}
-                <span className="font-mono text-slate-800">admin@</span>.
+                Sign in for your dashboard, registrations, and campus events. Admins use{" "}
+                <span className="font-mono text-slate-800">admin@university.com</span>.
               </p>
             </div>
 

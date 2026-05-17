@@ -1,17 +1,100 @@
 import { motion } from "motion/react";
-import { ArrowLeft, Calendar, Clock, MapPin, Share2, Star, Users } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Loader2, MapPin, Share2, Star, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getCampusEventById } from "@/services/events.service";
+import { toast } from "sonner";
+import { fetchCampusEventById } from "@/services/events.service";
+import * as registrationsService from "@/services/registrations.service";
 import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/hooks/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import type { CampusEvent } from "@/types/event";
+import type { EventRegistration } from "@/types/registration";
 
 export default function EventDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const { user, token } = useAuth();
   const idNum = Number(eventId);
-  const event = Number.isFinite(idNum) ? getCampusEventById(idNum) : undefined;
+
+  const [event, setEvent] = useState<CampusEvent | undefined>();
+  const [registration, setRegistration] = useState<EventRegistration | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useDocumentTitle(event ? `${event.title} | UniEvents` : "Event | UniEvents");
+
+  const loadData = useCallback(async () => {
+    if (!Number.isFinite(idNum)) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const eventData = await fetchCampusEventById(idNum);
+      setEvent(eventData);
+      if (user && token) {
+        const reg = await registrationsService.fetchMyRegistrationForEvent(idNum);
+        setRegistration(reg);
+      } else {
+        setRegistration(null);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load event");
+    } finally {
+      setLoading(false);
+    }
+  }, [idNum, user, token]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleRegister = async () => {
+    if (!user) {
+      navigate(ROUTES.LOGIN, { state: { from: { pathname: `/events/${idNum}` } } });
+      return;
+    }
+    if (user.role === "admin") {
+      toast.error("Admins cannot register for events. Use a student account.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const reg = await registrationsService.registerForEvent(idNum);
+      setRegistration(reg);
+      toast.success("Registration submitted! Awaiting admin approval.");
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Registration failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!registration) return;
+    setActionLoading(true);
+    try {
+      await registrationsService.cancelRegistration(registration.id);
+      setRegistration(null);
+      toast.success("Registration cancelled");
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not cancel registration");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-32 pb-24 px-4 flex justify-center text-slate-600">
+        <Loader2 className="animate-spin mr-2" size={22} />
+        Loading event…
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -35,6 +118,12 @@ export default function EventDetailPage() {
   const max = event.maxAttendees ?? 1;
   const pct = Math.min(100, (event.attendees / max) * 100);
 
+  const statusLabel = registration
+    ? `Status: ${registration.status}`
+    : user
+      ? "Not registered"
+      : "Sign in to register";
+
   return (
     <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -46,7 +135,7 @@ export default function EventDetailPage() {
           Back to events
         </Link>
 
-        <motion.article initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl mb-8">
             <div className="relative h-64 md:h-80">
               <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
@@ -132,16 +221,40 @@ export default function EventDetailPage() {
                     <div className="h-full bg-gradient-to-r from-blue-600 to-purple-600" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-                <Link
-                  to={ROUTES.MY_REGISTRATIONS}
-                  className="mt-6 block text-center py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all"
-                >
-                  Register (demo)
-                </Link>
+                <p className="mt-4 text-sm text-slate-600 capitalize">{statusLabel}</p>
+                {registration ? (
+                  <div className="mt-4 space-y-2">
+                    <Link
+                      to={ROUTES.MY_REGISTRATIONS}
+                      className="block text-center py-3 rounded-xl border border-slate-300 text-slate-800 font-semibold hover:bg-slate-50 transition-all"
+                    >
+                      View my registrations
+                    </Link>
+                    {registration.status !== "rejected" && (
+                      <button
+                        type="button"
+                        disabled={actionLoading}
+                        onClick={handleCancel}
+                        className="w-full py-3 rounded-xl border border-red-200 text-red-700 font-semibold hover:bg-red-50 disabled:opacity-60"
+                      >
+                        {actionLoading ? "Processing…" : "Cancel registration"}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={actionLoading || user?.role === "admin"}
+                    onClick={handleRegister}
+                    className="mt-6 w-full text-center py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-60"
+                  >
+                    {actionLoading ? "Processing…" : user ? "Register for event" : "Sign in to register"}
+                  </button>
+                )}
               </div>
             </aside>
           </div>
-        </motion.article>
+        </motion.div>
       </div>
     </div>
   );

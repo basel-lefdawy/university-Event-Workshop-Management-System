@@ -33,8 +33,8 @@ export default function SignupPage() {
         (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname ??
         ROUTES.DASHBOARD;
       navigate(redirectTo, { replace: true });
-    } catch {
-      setLocalError("Unable to create your account. Please try again.");
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : "Unable to create your account. Please try again.");
     }
   };
 

@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "dev:backend": "npm run dev --prefix backend",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

@@ -15,10 +15,11 @@ interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticating: boolean;
+  isBootstrapping: boolean;
   error: string | null;
-  login: (creds: LoginCredentials) => Promise<void>;
+  login: (creds: LoginCredentials) => Promise<AuthUser>;
   logout: () => void;
-  register: (payload: RegisterPayload) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<AuthUser>;
   clearError: () => void;
 }
 
@@ -70,11 +71,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(initialAuth.user);
   const [token, setToken] = useState<string | null>(initialAuth.token);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(Boolean(initialAuth.token));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setHttpAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
   }, [token]);
+
+  useEffect(() => {
+    if (!initialAuth.token) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await authService.fetchCurrentUser();
+        if (!cancelled) {
+          setUser(profile);
+          localStorage.setItem(USER_KEY, JSON.stringify(profile));
+        }
+      } catch {
+        if (!cancelled) {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setUser(null);
+          setToken(null);
+        }
+      } finally {
+        if (!cancelled) setIsBootstrapping(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialAuth.token]);
 
   const persistSession = useCallback((nextUser: AuthUser | null, nextToken: string | null) => {
     setUser(nextUser);
@@ -93,10 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticating(true);
       setError(null);
       try {
-        const nextUser = await authService.loginWithCredentials(creds);
-        persistSession(nextUser, `stub_${nextUser.id}`);
+        const { user: nextUser, token: nextToken } = await authService.loginWithCredentials(creds);
+        persistSession(nextUser, nextToken);
+        return nextUser;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Login failed");
+        const message = e instanceof Error ? e.message : "Login failed";
+        setError(message);
         throw e;
       } finally {
         setIsAuthenticating(false);
@@ -110,10 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticating(true);
       setError(null);
       try {
-        const nextUser = await authService.registerAccount(payload);
-        persistSession(nextUser, `stub_${nextUser.id}`);
+        const { user: nextUser, token: nextToken } = await authService.registerAccount(payload);
+        persistSession(nextUser, nextToken);
+        return nextUser;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Registration failed");
+        const message = e instanceof Error ? e.message : "Registration failed";
+        setError(message);
         throw e;
       } finally {
         setIsAuthenticating(false);
@@ -133,13 +167,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       token,
       isAuthenticating,
+      isBootstrapping,
       error,
       login,
       logout,
       register,
       clearError,
     }),
-    [user, token, isAuthenticating, error, login, logout, register, clearError]
+    [user, token, isAuthenticating, isBootstrapping, error, login, logout, register, clearError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

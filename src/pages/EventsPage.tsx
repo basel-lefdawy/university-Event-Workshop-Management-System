@@ -13,24 +13,37 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { DecorativeGrid } from "@/components/common/DecorativeGrid";
 import { EVENT_FILTER_CATEGORIES } from "@/constants/eventFilters";
-import { MOCK_EVENTS } from "@/constants/mockEvents";
 import { ROUTES, eventDetailPath } from "@/constants/routes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { fetchCampusEvents } from "@/services/events.service";
+import type { CampusEvent } from "@/types/event";
 
 export default function EventsPage() {
   useDocumentTitle("Events | UniEvents");
 
+  const [events, setEvents] = useState<CampusEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
   const [likedEvents, setLikedEvents] = useState<number[]>([]);
 
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const data = await fetchCampusEvents();
+      setEvents(data);
+      setLoading(false);
+    })();
+  }, []);
+
   const filteredEvents = useMemo(() => {
-    return MOCK_EVENTS.filter((event) => {
+    return events.filter((event) => {
       const matchesSearch =
         event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         event.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -38,7 +51,7 @@ export default function EventsPage() {
         selectedCategory === "All" || event.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [events, searchQuery, selectedCategory]);
 
   const toggleLike = (eventId: number) => {
     setLikedEvents((prev) =>
@@ -98,7 +111,7 @@ export default function EventsPage() {
             className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-8"
           >
             <div className="text-center">
-              <div className="text-3xl font-bold text-white">{MOCK_EVENTS.length}</div>
+              <div className="text-3xl font-bold text-white">{events.length}</div>
               <div className="text-blue-100 text-sm mt-1">Total Events</div>
             </div>
             <div className="text-center">
@@ -177,6 +190,12 @@ export default function EventsPage() {
             </div>
           </div>
 
+          {loading ? (
+            <div className="flex justify-center py-20 text-slate-500">
+              <Loader2 className="animate-spin mr-2" size={24} />
+              Loading events…
+            </div>
+          ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredEvents.map((event, index) => {
               const isLiked = likedEvents.includes(event.id);
@@ -315,8 +334,9 @@ export default function EventsPage() {
               );
             })}
           </div>
+          )}
 
-          {filteredEvents.length === 0 && (
+          {!loading && filteredEvents.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -377,3 +397,5 @@ export default function EventsPage() {
     </>
   );
 }
+
+

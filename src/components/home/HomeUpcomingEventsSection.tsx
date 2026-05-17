@@ -1,12 +1,22 @@
 import { motion } from "motion/react";
 import { Calendar, MapPin, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { SectionIntro } from "@/components/home/SectionIntro";
-import { MOCK_EVENTS, UPCOMING_PREVIEW_LIMIT } from "@/constants/mockEvents";
+import { UPCOMING_PREVIEW_LIMIT } from "@/constants/mockEvents";
 import { ROUTES, eventDetailPath } from "@/constants/routes";
+import { fetchCampusEvents } from "@/services/events.service";
+import type { CampusEvent } from "@/types/event";
 
 export function HomeUpcomingEventsSection() {
-  const upcoming = MOCK_EVENTS.slice(0, UPCOMING_PREVIEW_LIMIT);
+  const [upcoming, setUpcoming] = useState<CampusEvent[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const events = await fetchCampusEvents();
+      setUpcoming(events.slice(0, UPCOMING_PREVIEW_LIMIT));
+    })();
+  }, []);
 
   return (
     <section id="events" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
@@ -53,13 +63,13 @@ export function HomeUpcomingEventsSection() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Users size={16} className="text-blue-500" />
-                    {event.attendees} Attendees
+                    {event.attendees} attending
                   </div>
                 </div>
 
                 <Link
                   to={eventDetailPath(event.id)}
-                  className="block text-center w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
+                  className="block w-full text-center py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                 >
                   View Details
                 </Link>
@@ -71,7 +81,7 @@ export function HomeUpcomingEventsSection() {
         <div className="text-center mt-12">
           <Link
             to={ROUTES.EVENTS}
-            className="inline-flex px-8 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-semibold"
+            className="inline-flex px-8 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors"
           >
             View All Events
           </Link>
@@ -80,3 +90,4 @@ export function HomeUpcomingEventsSection() {
     </section>
   );
 }
+

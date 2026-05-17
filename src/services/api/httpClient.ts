@@ -1,4 +1,6 @@
-const DEFAULT_BASE_URL = "";
+import { parseApiError } from "@/services/api/errors";
+
+const DEFAULT_BASE_URL = "http://localhost:3001/api";
 
 export interface HttpClientConfig {
   baseUrl?: string;
@@ -29,8 +31,7 @@ export function createHttpClient(config: HttpClientConfig = {}) {
     const res = await fetch(buildUrl(baseUrl, path), { ...init, headers });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(text || `Request failed (${res.status})`);
+      throw new Error(await parseApiError(res));
     }
 
     const contentType = res.headers.get("Content-Type") ?? "";
@@ -53,6 +54,12 @@ export function createHttpClient(config: HttpClientConfig = {}) {
       request<T>(path, {
         ...init,
         method: "PUT",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+    patch: <T>(path: string, body?: unknown, init?: RequestInit) =>
+      request<T>(path, {
+        ...init,
+        method: "PATCH",
         body: body === undefined ? undefined : JSON.stringify(body),
       }),
     delete: <T>(path: string, init?: RequestInit) =>
