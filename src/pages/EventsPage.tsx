@@ -379,10 +379,10 @@ export default function EventsPage() {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link
-                to={ROUTES.CREATE_EVENT}
+                to={ROUTES.SUGGEST_EVENT}
                 className="px-10 py-4 bg-white text-blue-900 rounded-xl hover:shadow-2xl hover:scale-105 transition-all font-bold text-lg"
               >
-                Create Event
+                Suggest an Event
               </Link>
               <Link
                 to={ROUTES.ABOUT}

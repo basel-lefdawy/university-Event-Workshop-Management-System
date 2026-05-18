@@ -1,13 +1,8 @@
 import { RegistrationStatus, Role } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, forbidden, notFound } from "../utils/errors.js";
+import { getAcceptedCount, getReservedCount, isEventFull, isRegistrationClosed } from "../utils/capacity.js";
 import { mapEvent, mapRegistration } from "../utils/mappers.js";
-
-async function attendeeCount(eventId: number) {
-  return prisma.registration.count({
-    where: { eventId, status: RegistrationStatus.ACCEPTED },
-  });
-}
 
 export async function registerForEvent(userId: number, eventId: number) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
@@ -22,9 +17,17 @@ export async function registerForEvent(userId: number, eventId: number) {
     throw conflict("You are already registered for this event");
   }
 
-  const acceptedCount = await attendeeCount(eventId);
-  if (acceptedCount >= event.maxAttendees) {
-    throw badRequest("This event has reached maximum capacity");
+  const [acceptedCount, reservedCount] = await Promise.all([
+    getAcceptedCount(eventId),
+    getReservedCount(eventId),
+  ]);
+
+  if (isEventFull(acceptedCount, event.maxAttendees)) {
+    throw badRequest("Event is full");
+  }
+
+  if (isRegistrationClosed(reservedCount, event.maxAttendees)) {
+    throw badRequest("Event is full — no registration spots remaining");
   }
 
   const registration = await prisma.registration.create({
@@ -32,8 +35,11 @@ export async function registerForEvent(userId: number, eventId: number) {
     include: { event: true },
   });
 
-  const attendees = await attendeeCount(eventId);
-  return mapRegistration(registration, attendees);
+  const [attendees, reserved] = await Promise.all([
+    getAcceptedCount(eventId),
+    getReservedCount(eventId),
+  ]);
+  return mapRegistration(registration, attendees, reserved);
 }
 
 export async function listMyRegistrations(userId: number) {
@@ -43,13 +49,15 @@ export async function listMyRegistrations(userId: number) {
     orderBy: { createdAt: "desc" },
   });
 
-  const result = await Promise.all(
+  return Promise.all(
     registrations.map(async (reg) => {
-      const attendees = await attendeeCount(reg.eventId);
-      return mapRegistration(reg, attendees);
+      const [attendees, reserved] = await Promise.all([
+        getAcceptedCount(reg.eventId),
+        getReservedCount(reg.eventId),
+      ]);
+      return mapRegistration(reg, attendees, reserved);
     })
   );
-  return result;
 }
 
 export async function getMyRegistrationForEvent(userId: number, eventId: number) {
@@ -58,14 +66,16 @@ export async function getMyRegistrationForEvent(userId: number, eventId: number)
     include: { event: true },
   });
   if (!registration) return null;
-  const attendees = await attendeeCount(eventId);
-  return mapRegistration(registration, attendees);
+  const [attendees, reserved] = await Promise.all([
+    getAcceptedCount(eventId),
+    getReservedCount(eventId),
+  ]);
+  return mapRegistration(registration, attendees, reserved);
 }
 
 export async function cancelRegistration(userId: number, registrationId: number) {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
-    include: { event: true },
   });
 
   if (!registration) {
@@ -87,8 +97,11 @@ export async function listAllRegistrations() {
 
   return Promise.all(
     registrations.map(async (reg) => {
-      const attendees = await attendeeCount(reg.eventId);
-      return mapRegistration(reg, attendees);
+      const [attendees, reserved] = await Promise.all([
+        getAcceptedCount(reg.eventId),
+        getReservedCount(reg.eventId),
+      ]);
+      return mapRegistration(reg, attendees, reserved);
     })
   );
 }
@@ -107,8 +120,8 @@ export async function updateRegistrationStatus(
   }
 
   if (status === RegistrationStatus.ACCEPTED) {
-    const acceptedCount = await attendeeCount(registration.eventId);
-    if (acceptedCount >= registration.event.maxAttendees) {
+    const acceptedCount = await getAcceptedCount(registration.eventId);
+    if (isEventFull(acceptedCount, registration.event.maxAttendees)) {
       throw badRequest("Event is at full capacity");
     }
   }
@@ -119,17 +132,21 @@ export async function updateRegistrationStatus(
     include: { event: true, user: true },
   });
 
-  const attendees = await attendeeCount(updated.eventId);
-  return mapRegistration(updated, attendees);
+  const [attendees, reserved] = await Promise.all([
+    getAcceptedCount(updated.eventId),
+    getReservedCount(updated.eventId),
+  ]);
+  return mapRegistration(updated, attendees, reserved);
 }
 
 export async function getAdminStats() {
-  const [events, users, registrations, pending] = await Promise.all([
+  const [events, users, registrations, pendingRegs, pendingSuggestions] = await Promise.all([
     prisma.event.count(),
     prisma.user.count({ where: { role: Role.STUDENT } }),
     prisma.registration.count(),
     prisma.registration.count({ where: { status: RegistrationStatus.PENDING } }),
+    prisma.eventSuggestion.count({ where: { status: "PENDING" } }),
   ]);
 
-  return { events, users, registrations, pending };
+  return { events, users, registrations, pending: pendingRegs, pendingSuggestions };
 }

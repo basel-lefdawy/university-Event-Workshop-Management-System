@@ -5,6 +5,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
 import eventsRoutes from "./routes/events.routes.js";
 import registrationsRoutes from "./routes/registrations.routes.js";
+import suggestionsRoutes from "./routes/suggestions.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 
 export function createApp() {
@@ -40,6 +41,7 @@ export function createApp() {
   app.use("/api/events", eventsRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/registrations", registrationsRoutes);
+  app.use("/api/suggestions", suggestionsRoutes);
 
   app.use(errorHandler);
 

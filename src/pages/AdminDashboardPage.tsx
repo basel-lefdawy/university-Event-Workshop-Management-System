@@ -16,17 +16,26 @@ import {
 import { ROUTES } from "@/constants/routes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import * as registrationsService from "@/services/registrations.service";
+import * as suggestionsService from "@/services/suggestions.service";
 import * as usersService from "@/services/users.service";
 import type { AdminRegistrationRow, AdminUserRow } from "@/types/registration";
+import type { EventSuggestion } from "@/types/suggestion";
 
-type Tab = "users" | "registrations";
+type Tab = "users" | "registrations" | "suggestions";
 
 export default function AdminDashboardPage() {
   useDocumentTitle("Admin Dashboard | UniEvents");
   const [tab, setTab] = useState<Tab>("users");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [registrations, setRegistrations] = useState<AdminRegistrationRow[]>([]);
-  const [stats, setStats] = useState({ events: 0, users: 0, registrations: 0, pending: 0 });
+  const [suggestions, setSuggestions] = useState<EventSuggestion[]>([]);
+  const [stats, setStats] = useState({
+    events: 0,
+    users: 0,
+    registrations: 0,
+    pending: 0,
+    pendingSuggestions: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState<AdminUserRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -35,14 +44,16 @@ export default function AdminDashboardPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [usersData, regsData, statsData] = await Promise.all([
+      const [usersData, regsData, statsData, suggestionsData] = await Promise.all([
         usersService.fetchAllUsers(),
         registrationsService.fetchAllRegistrationsAdmin(),
         registrationsService.fetchAdminStats(),
+        suggestionsService.fetchAllSuggestionsAdmin(),
       ]);
       setUsers(usersData);
       setRegistrations(regsData);
       setStats(statsData);
+      setSuggestions(suggestionsData);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load admin data");
     } finally {
@@ -70,7 +81,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const updateStatus = async (id: string, status: "ACCEPTED" | "REJECTED") => {
+  const updateRegStatus = async (id: string, status: "ACCEPTED" | "REJECTED") => {
     setUpdatingId(id);
     try {
       const updated = await registrationsService.updateRegistrationStatus(id, status);
@@ -83,11 +94,25 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const updateSuggestionStatus = async (id: string, status: "ACCEPTED" | "REJECTED") => {
+    setUpdatingId(id);
+    try {
+      const updated = await suggestionsService.updateSuggestionStatus(id, status);
+      setSuggestions((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      toast.success(status === "ACCEPTED" ? "Event published from suggestion" : "Suggestion rejected");
+      await loadAll();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update suggestion");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const statCards = [
     { label: "Published events", value: String(stats.events), icon: Calendar },
-    { label: "Pending approvals", value: String(stats.pending), icon: ClipboardCheck },
-    { label: "Total registrations", value: String(stats.registrations), icon: Users },
-    { label: "Student accounts", value: String(stats.users), icon: BarChart3 },
+    { label: "Pending registrations", value: String(stats.pending), icon: ClipboardCheck },
+    { label: "Suggested events", value: String(stats.pendingSuggestions ?? 0), icon: BarChart3 },
+    { label: "Student accounts", value: String(stats.users), icon: Users },
   ];
 
   return (
@@ -121,18 +146,24 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex gap-2 mb-6">
-          {(["users", "registrations"] as Tab[]).map((t) => (
+          {(
+            [
+              { id: "users" as Tab, label: "Users" },
+              { id: "registrations" as Tab, label: "Registrations" },
+              { id: "suggestions" as Tab, label: "Suggested events" },
+            ] as const
+          ).map((t) => (
             <button
-              key={t}
+              key={t.id}
               type="button"
-              onClick={() => setTab(t)}
-              className={`px-5 py-2.5 rounded-xl font-semibold capitalize transition-colors ${
-                tab === t
+              onClick={() => setTab(t.id)}
+              className={`px-5 py-2.5 rounded-xl font-semibold transition-colors ${
+                tab === t.id
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
-              {t}
+              {t.label}
             </button>
           ))}
         </div>
@@ -141,6 +172,48 @@ export default function AdminDashboardPage() {
           <div className="flex justify-center py-16 text-slate-500">
             <Loader2 className="animate-spin mr-2" size={22} />
             Loading…
+          </div>
+        ) : tab === "suggestions" ? (
+          <div className="space-y-4">
+            {suggestions.length === 0 ? (
+              <p className="text-slate-600 text-center py-12">No event suggestions yet.</p>
+            ) : (
+              suggestions.map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col md:flex-row md:items-start md:justify-between gap-4"
+                >
+                  <div>
+                    <p className="font-semibold text-slate-900 text-lg">{s.title}</p>
+                    <p className="text-sm text-slate-600 mt-1 line-clamp-2">{s.description}</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      By {s.user?.name} · {new Date(s.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1 capitalize">Status: {s.status}</p>
+                  </div>
+                  {s.status === "pending" && (
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={updatingId === s.id}
+                        onClick={() => updateSuggestionStatus(s.id, "ACCEPTED")}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        Accept & publish
+                      </button>
+                      <button
+                        type="button"
+                        disabled={updatingId === s.id}
+                        onClick={() => updateSuggestionStatus(s.id, "REJECTED")}
+                        className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 disabled:opacity-60"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         ) : tab === "users" ? (
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
@@ -200,7 +273,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         disabled={updatingId === reg.id}
-                        onClick={() => updateStatus(reg.id, "ACCEPTED")}
+                        onClick={() => updateRegStatus(reg.id, "ACCEPTED")}
                         className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-60"
                       >
                         Accept
@@ -208,7 +281,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         disabled={updatingId === reg.id}
-                        onClick={() => updateStatus(reg.id, "REJECTED")}
+                        onClick={() => updateRegStatus(reg.id, "REJECTED")}
                         className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 disabled:opacity-60"
                       >
                         Reject
@@ -225,10 +298,10 @@ export default function AdminDashboardPage() {
           <p className="text-slate-700">Need to review campus listings?</p>
           <div className="flex flex-wrap gap-3">
             <Link
-              to={ROUTES.EVENTS}
+              to={ROUTES.ADMIN_EVENTS}
               className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
             >
-              View events
+              Manage events
             </Link>
             <Link
               to={ROUTES.CONTACT}

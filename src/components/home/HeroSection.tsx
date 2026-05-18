@@ -40,7 +40,7 @@ export function HeroSection() {
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                to={ROUTES.CREATE_EVENT}
+                to={ROUTES.SUGGEST_EVENT}
                 className="px-8 py-4 bg-white border-2 border-slate-300 text-slate-700 rounded-xl hover:border-blue-600 hover:text-blue-600 transition-all font-semibold"
               >
                 Plan an event

@@ -16,12 +16,12 @@ export default function UserDashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-3xl border border-slate-200 shadow-xl p-8 md:p-12"
         >
-          <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-2">User dashboard</p>
+          <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-2">Student dashboard</p>
           <h1 className="text-3xl font-bold text-slate-900 mb-4">
-            Hi{user?.name ? `, ${user.name}` : ""}! Here is your UniEvents home base.
+            Hi{user?.name ? `, ${user.name}` : ""}!
           </h1>
           <p className="text-slate-600 leading-relaxed mb-8">
-            Manage your campus activity, registrations, and event drafts from here.
+            Browse events, manage your registrations, or suggest a new campus activity.
           </p>
           <ul className="grid sm:grid-cols-2 gap-3 mb-8 text-slate-700">
             <li>
@@ -34,10 +34,18 @@ export default function UserDashboardPage() {
             </li>
             <li>
               <Link
-                to={ROUTES.CREATE_EVENT}
+                to={ROUTES.SUGGEST_EVENT}
                 className="block rounded-xl border border-slate-200 px-4 py-3 hover:border-blue-300 hover:bg-blue-50/50 transition-colors font-medium"
               >
-                Create event
+                Suggest an event
+              </Link>
+            </li>
+            <li>
+              <Link
+                to={ROUTES.MY_SUGGESTIONS}
+                className="block rounded-xl border border-slate-200 px-4 py-3 hover:border-blue-300 hover:bg-blue-50/50 transition-colors font-medium"
+              >
+                My suggested events
               </Link>
             </li>
             <li>
@@ -48,24 +56,7 @@ export default function UserDashboardPage() {
                 Browse events
               </Link>
             </li>
-            <li>
-              <Link
-                to={ROUTES.WORKSHOPS}
-                className="block rounded-xl border border-slate-200 px-4 py-3 hover:border-blue-300 hover:bg-blue-50/50 transition-colors font-medium"
-              >
-                Workshops
-              </Link>
-            </li>
           </ul>
-          {user?.role === "admin" && (
-            <p className="text-sm text-slate-600 mb-6">
-              You have admin access. Open the{" "}
-              <Link to={ROUTES.ADMIN_DASHBOARD} className="text-blue-600 font-semibold hover:underline">
-                admin dashboard
-              </Link>{" "}
-              for approvals and campus-wide metrics.
-            </p>
-          )}
           <div className="flex flex-wrap gap-4">
             <Link
               to={ROUTES.EVENTS}

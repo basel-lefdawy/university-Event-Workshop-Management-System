@@ -18,14 +18,22 @@ enum RegistrationStatus {
   REJECTED
 }
 
+enum SuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
-  id            Int            @id @default(autoincrement())
-  name          String
-  email         String         @unique
-  passwordHash  String         @map("password_hash")
-  role          Role           @default(STUDENT)
-  createdAt     DateTime       @default(now()) @map("created_at")
-  registrations Registration[]
+  id                 Int                @id @default(autoincrement())
+  name               String
+  email              String             @unique
+  passwordHash       String             @map("password_hash")
+  role               Role               @default(STUDENT)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  registrations      Registration[]
+  createdEvents      Event[]            @relation("EventCreator")
+  eventSuggestions   EventSuggestion[]
 
   @@map("users")
 }
@@ -43,7 +51,9 @@ model Event {
   organizer     String?
   price         String?
   featured      Boolean        @default(false)
+  createdById   Int?           @map("created_by_id")
   createdAt     DateTime       @default(now()) @map("created_at")
+  createdBy     User?          @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
   registrations Registration[]
 
   @@map("events")
@@ -61,4 +71,23 @@ model Registration {
 
   @@unique([userId, eventId])
   @@map("registrations")
+}
+
+model EventSuggestion {
+  id           Int              @id @default(autoincrement())
+  userId       Int              @map("user_id")
+  title        String
+  description  String           @db.Text
+  date         String
+  time         String?
+  location     String
+  category     String
+  maxAttendees Int              @default(100) @map("max_attendees")
+  image        String?          @db.Text
+  status       SuggestionStatus @default(PENDING)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("event_suggestions")
 }

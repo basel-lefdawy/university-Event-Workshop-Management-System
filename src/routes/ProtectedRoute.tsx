@@ -5,11 +5,11 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  /** When true, only users with role `admin` may access the route. */
   requireAdmin?: boolean;
+  requireStudent?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin, requireStudent }: ProtectedRouteProps) {
   const { user, token, isBootstrapping } = useAuth();
   const location = useLocation();
 
@@ -27,6 +27,10 @@ export function ProtectedRoute({ children, requireAdmin }: ProtectedRouteProps) 
 
   if (requireAdmin && user.role !== "admin") {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
+
+  if (requireStudent && user.role !== "student") {
+    return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
   }
 
   return <>{children}</>;

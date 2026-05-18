@@ -3,6 +3,9 @@ import { AuthLayout } from "@/layouts/AuthLayout";
 import { MainLayout } from "@/layouts/MainLayout";
 import AboutPage from "@/pages/AboutPage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
+import AdminCreateEventPage from "@/pages/admin/AdminCreateEventPage";
+import AdminEditEventPage from "@/pages/admin/AdminEditEventPage";
+import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import ContactPage from "@/pages/ContactPage";
 import CreateEventPage from "@/pages/CreateEventPage";
 import EventDetailPage from "@/pages/EventDetailPage";
@@ -10,7 +13,9 @@ import EventsPage from "@/pages/EventsPage";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import MyRegistrationsPage from "@/pages/MyRegistrationsPage";
+import MySuggestionsPage from "@/pages/MySuggestionsPage";
 import SignupPage from "@/pages/SignupPage";
+import SuggestEventPage from "@/pages/SuggestEventPage";
 import UserDashboardPage from "@/pages/UserDashboardPage";
 import WorkshopsPage from "@/pages/WorkshopsPage";
 import { ROUTES } from "@/constants/routes";
@@ -24,16 +29,49 @@ export function AppRoutes() {
         <Route path={ROUTES.ABOUT} element={<AboutPage />} />
         <Route path={ROUTES.WORKSHOPS} element={<WorkshopsPage />} />
         <Route path={ROUTES.CONTACT} element={<ContactPage />} />
+        <Route path={`${ROUTES.EVENTS}/:eventId`} element={<EventDetailPage />} />
+        <Route path={ROUTES.EVENTS} element={<EventsPage />} />
+
         <Route
           path={ROUTES.CREATE_EVENT}
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminCreateEventPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/events/:eventId/edit"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminEditEventPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.ADMIN_EVENTS}
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminEventsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/create"
           element={
             <ProtectedRoute>
               <CreateEventPage />
             </ProtectedRoute>
           }
         />
-        <Route path={`${ROUTES.EVENTS}/:eventId`} element={<EventDetailPage />} />
-        <Route path={ROUTES.EVENTS} element={<EventsPage />} />
+        <Route
+          path={ROUTES.SUGGEST_EVENT}
+          element={
+            <ProtectedRoute requireStudent>
+              <SuggestEventPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path={ROUTES.DASHBOARD}
           element={
@@ -55,6 +93,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <MyRegistrationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.MY_SUGGESTIONS}
+          element={
+            <ProtectedRoute requireStudent>
+              <MySuggestionsPage />
             </ProtectedRoute>
           }
         />

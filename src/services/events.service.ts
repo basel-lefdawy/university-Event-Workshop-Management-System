@@ -1,5 +1,5 @@
 import { api } from "@/services/apiInstance";
-import type { CampusEvent } from "@/types/event";
+import type { CampusEvent, EventFormValues } from "@/types/event";
 import { MOCK_EVENTS } from "@/constants/mockEvents";
 
 interface EventsListResponse {
@@ -28,6 +28,20 @@ export async function fetchCampusEventById(id: number): Promise<CampusEvent | un
   } catch {
     return MOCK_EVENTS.find((e) => e.id === id);
   }
+}
+
+export async function createEvent(data: EventFormValues): Promise<CampusEvent> {
+  const res = await api.post<EventResponse>("/events", data);
+  return res.event;
+}
+
+export async function updateEvent(id: number, data: Partial<EventFormValues>): Promise<CampusEvent> {
+  const res = await api.put<EventResponse>(`/events/${id}`, data);
+  return res.event;
+}
+
+export async function deleteEvent(id: number): Promise<void> {
+  await api.delete(`/events/${id}`);
 }
 
 export function getCampusEventById(id: number): CampusEvent | undefined {

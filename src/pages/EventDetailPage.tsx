@@ -117,12 +117,16 @@ export default function EventDetailPage() {
 
   const max = event.maxAttendees ?? 1;
   const pct = Math.min(100, (event.attendees / max) * 100);
+  const isFull = event.isFull ?? event.attendees >= max;
+  const registrationClosed = event.isRegistrationClosed ?? isFull;
 
   const statusLabel = registration
     ? `Status: ${registration.status}`
-    : user
-      ? "Not registered"
-      : "Sign in to register";
+    : isFull
+      ? "Event is full"
+      : user
+        ? "Not registered"
+        : "Sign in to register";
 
   return (
     <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
@@ -244,11 +248,21 @@ export default function EventDetailPage() {
                 ) : (
                   <button
                     type="button"
-                    disabled={actionLoading || user?.role === "admin"}
+                    disabled={actionLoading || user?.role === "admin" || registrationClosed}
                     onClick={handleRegister}
-                    className="mt-6 w-full text-center py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-60"
+                    className={`mt-6 w-full text-center py-3 rounded-xl font-semibold transition-all disabled:opacity-60 ${
+                      registrationClosed
+                        ? "bg-slate-200 text-slate-600 cursor-not-allowed"
+                        : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+                    }`}
                   >
-                    {actionLoading ? "Processing…" : user ? "Register for event" : "Sign in to register"}
+                    {actionLoading
+                      ? "Processing…"
+                      : registrationClosed
+                        ? "Event is full"
+                        : user
+                          ? "Register for event"
+                          : "Sign in to register"}
                   </button>
                 )}
               </div>

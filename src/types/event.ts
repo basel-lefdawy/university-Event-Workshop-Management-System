@@ -12,10 +12,28 @@ export interface CampusEvent {
   date: string;
   time?: string;
   location: string;
-  category: EventCategory;
+  category: EventCategory | string;
   image: string;
   attendees: number;
   maxAttendees?: number;
+  organizer?: string;
+  price?: string;
+  featured?: boolean;
+  createdById?: number;
+  isFull?: boolean;
+  isRegistrationClosed?: boolean;
+  spotsLeft?: number;
+}
+
+export interface EventFormValues {
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  category: string;
+  maxAttendees: number;
+  image?: string;
   organizer?: string;
   price?: string;
   featured?: boolean;

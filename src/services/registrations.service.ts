@@ -58,10 +58,17 @@ export async function fetchAdminStats(): Promise<{
   users: number;
   registrations: number;
   pending: number;
+  pendingSuggestions: number;
 }> {
   const res = await api.get<{
     success: boolean;
-    stats: { events: number; users: number; registrations: number; pending: number };
+    stats: {
+      events: number;
+      users: number;
+      registrations: number;
+      pending: number;
+      pendingSuggestions: number;
+    };
   }>("/registrations/admin/stats");
   return res.stats;
 }

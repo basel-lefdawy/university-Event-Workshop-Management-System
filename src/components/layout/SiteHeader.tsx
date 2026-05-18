@@ -1,17 +1,19 @@
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BrandLogoRow } from "@/components/layout/BrandLogo";
 import { NavItems } from "@/components/layout/NavItems";
-import { PRIMARY_NAV, SECONDARY_NAV } from "@/constants/navigation";
+import { getAccountNav, PUBLIC_NAV } from "@/constants/navigation";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
+  const isAdmin = user?.role === "admin";
+  const accountNav = getAccountNav(user?.role);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -27,41 +29,51 @@ export function SiteHeader() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const accountLinks =
-    user == null
-      ? []
-      : [
-          { to: ROUTES.DASHBOARD, label: "Dashboard" },
-          { to: ROUTES.MY_REGISTRATIONS, label: "Registrations" },
-          { to: ROUTES.CREATE_EVENT, label: "Create event" },
-          ...(user.role === "admin" ? [{ to: ROUTES.ADMIN_DASHBOARD, label: "Admin" }] : []),
-        ];
-
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-50 shadow-sm">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 shadow-sm border-b ${
+        isAdmin
+          ? "bg-slate-900/95 backdrop-blur-xl border-slate-700"
+          : "bg-white/80 backdrop-blur-xl border-slate-200/60"
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 md:h-20">
-          <Link to={ROUTES.HOME} aria-label="UniEvents Home">
-            <BrandLogoRow />
+        <div className="flex justify-between items-center h-16 md:h-[4.5rem] gap-4">
+          <Link to={isAdmin ? ROUTES.ADMIN_DASHBOARD : ROUTES.HOME} aria-label="UniEvents Home">
+            <BrandLogoRow
+              titleClassName={
+                isAdmin
+                  ? "text-xl font-bold text-white"
+                  : "text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent"
+              }
+              subtitle={isAdmin ? <span className="text-slate-400">Admin portal</span> : undefined}
+            />
           </Link>
 
-          <div className="hidden md:flex md:flex-col md:items-end md:gap-2 lg:flex-row lg:items-center lg:gap-8">
-            <NavItems items={PRIMARY_NAV} className="" />
-            <NavItems items={SECONDARY_NAV} className="lg:ml-0 text-sm gap-4" />
+          <div className="hidden lg:flex items-center gap-6 min-w-0 flex-1 justify-center">
+            <NavItems
+              items={PUBLIC_NAV}
+              variant="header"
+              className={isAdmin ? "[&_a]:text-slate-300 [&_a:hover]:text-white [&_.font-semibold]:text-white" : ""}
+            />
           </div>
 
-          <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0 flex-wrap justify-end">
+          <div className="hidden md:flex items-center gap-1 shrink-0">
             {user ? (
               <>
-                {accountLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className="px-3 py-2 text-slate-700 hover:text-blue-600 transition-colors font-medium text-sm whitespace-nowrap"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+                <NavItems items={accountNav} variant="account" className={isAdmin ? "[&_a]:text-slate-200 [&_a:hover]:bg-slate-800" : ""} />
+                <button
+                  type="button"
+                  onClick={logout}
+                  className={`ml-1 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isAdmin
+                      ? "text-slate-300 hover:bg-slate-800 hover:text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <LogOut size={16} />
+                  Sign out
+                </button>
               </>
             ) : (
               <>
@@ -73,7 +85,7 @@ export function SiteHeader() {
                 </Link>
                 <Link
                   to={ROUTES.SIGNUP}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all font-medium"
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium"
                 >
                   Sign up
                 </Link>
@@ -84,7 +96,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setMobileOpen((o) => !o)}
-            className="md:hidden p-2 rounded-lg hover:bg-slate-100"
+            className={`md:hidden p-2 rounded-lg ${isAdmin ? "hover:bg-slate-800 text-white" : "hover:bg-slate-100"}`}
             aria-expanded={mobileOpen}
             aria-label="Toggle navigation menu"
           >
@@ -97,52 +109,57 @@ export function SiteHeader() {
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="md:hidden bg-white border-t border-slate-200"
+          className={`md:hidden border-t ${isAdmin ? "bg-slate-900 border-slate-700" : "bg-white border-slate-200"}`}
         >
-          <div className="px-4 py-6 space-y-6">
+          <div className="px-4 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
             <NavItems
-              items={PRIMARY_NAV}
+              items={PUBLIC_NAV}
               onNavigate={() => setMobileOpen(false)}
-              className="flex-col items-stretch"
+              className={`flex-col items-stretch ${isAdmin ? "[&_a]:text-slate-200" : ""}`}
             />
-            <NavItems
-              items={SECONDARY_NAV}
-              onNavigate={() => setMobileOpen(false)}
-              className="flex-col items-stretch"
-            />
-            <div className="pt-2 space-y-3 border-t border-slate-100">
-              {user ? (
-                <>
-                  {accountLinks.map((link) => (
-                    <Link
-                      key={link.to}
-                      to={link.to}
-                      className="block w-full text-center px-6 py-2.5 rounded-lg border border-slate-200 font-medium text-slate-800"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <Link
-                    to={ROUTES.LOGIN}
-                    className="block w-full px-4 py-2 text-slate-700 border border-slate-300 rounded-lg text-center font-medium"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to={ROUTES.SIGNUP}
-                    className="block w-full px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-center font-medium"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Sign up
-                  </Link>
-                </>
-              )}
-            </div>
+            {user && (
+              <div className={`pt-4 border-t space-y-1 ${isAdmin ? "border-slate-700" : "border-slate-100"}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${isAdmin ? "text-slate-400" : "text-slate-500"}`}>
+                  {isAdmin ? "Admin" : "Your account"}
+                </p>
+                <NavItems
+                  items={accountNav}
+                  onNavigate={() => setMobileOpen(false)}
+                  variant="account"
+                  className={`flex-col items-stretch ${isAdmin ? "[&_a]:text-slate-200 [&_a:hover]:bg-slate-800" : ""}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setMobileOpen(false);
+                  }}
+                  className={`w-full mt-2 px-4 py-2.5 rounded-lg border text-sm font-medium ${
+                    isAdmin ? "border-slate-600 text-slate-200" : "border-slate-200 text-slate-800"
+                  }`}
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+            {!user && (
+              <div className="pt-2 space-y-3 border-t border-slate-100">
+                <Link
+                  to={ROUTES.LOGIN}
+                  className="block w-full px-4 py-2.5 text-center rounded-lg border border-slate-300 font-medium"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  to={ROUTES.SIGNUP}
+                  className="block w-full px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-center font-medium"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
         </motion.div>
       )}

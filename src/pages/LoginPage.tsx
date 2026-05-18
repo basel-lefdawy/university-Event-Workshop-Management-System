@@ -74,8 +74,7 @@ export default function LoginPage() {
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h2>
               <p className="text-slate-600">
-                Sign in for your dashboard, registrations, and campus events. Admins use{" "}
-                <span className="font-mono text-slate-800">admin@university.com</span>.
+                Sign in to access your dashboard, event registrations, and campus activities.
               </p>
             </div>
 
